@@ -1,7 +1,8 @@
 // 2025.01.07
 
 const sketch = p => {
-  let img
+  let img // original
+  let gridImg // cropped to evenly divide into grid
   let grid = []
   let originalGrid = []
   let outputLayer
@@ -13,15 +14,24 @@ const sketch = p => {
   }
   let shuffleProbability = 0.8
 
+  function createGridFittingImage () {
+    const newWidth = img.width - (img.width % gridSize)
+    const newHeight = img.height - (img.height % gridSize)
+    gridImg = p.createImage(newWidth, newHeight)
+    gridImg.copy(img, 0, 0, newWidth, newHeight, 0, 0, newWidth, newHeight)
+  }
+
   p.preload = () => {
-    img = p.loadImage('images/mona.png')
+    img = p.loadImage('images/mona.png', img => {
+      createGridFittingImage()
+    })
   }
 
   p.setup = () => {
     const canvasWidth = p.windowWidth - 20
-    const canvasHeight = (img.height / img.width) * canvasWidth
+    const canvasHeight = (gridImg.height / gridImg.width) * canvasWidth
     p.createCanvas(canvasWidth, canvasHeight).drop(handleFile)
-    outputLayer = p.createGraphics(img.width, img.height)
+    outputLayer = p.createGraphics(gridImg.width, gridImg.height)
     divideImageIntoGrid()
     shuffleGrid()
 
@@ -52,35 +62,35 @@ const sketch = p => {
   function divideImageIntoGrid () {
     grid = []
     originalGrid = []
-    for (let y = 0; y < img.height; y += gridSize) {
-      for (let x = 0; x < img.width; x += gridSize) {
-        const gridElement = { x: x, y: y }
+    for (let y = 0; y < gridImg.height; y += gridSize) {
+      for (let x = 0; x < gridImg.width; x += gridSize) {
+        const gridElement = { x, y }
         grid.push(gridElement)
         originalGrid.push(gridElement)
       }
     }
-    // Ensure the last row and column are captured
-    if (img.width % gridSize !== 0) {
-      for (let y = 0; y < img.height; y += gridSize) {
-        const gridElement = { x: img.width - (img.width % gridSize), y: y }
-        grid.push(gridElement)
-        originalGrid.push(gridElement)
-      }
-    }
-    if (img.height % gridSize !== 0) {
-      for (let x = 0; x < img.width; x += gridSize) {
-        const gridElement = { x: x, y: img.height - (img.height % gridSize) }
-        grid.push(gridElement)
-        originalGrid.push(gridElement)
-      }
-    }
+    // Ensure the last row and column are captured (not needed if we are cropping the image)
+    // if (img.width % gridSize !== 0) {
+    //   for (let y = 0; y < img.height; y += gridSize) {
+    //     const gridElement = { x: img.width - (img.width % gridSize), y }
+    //     grid.push(gridElement)
+    //     originalGrid.push(gridElement)
+    //   }
+    // }
+    // if (img.height % gridSize !== 0) {
+    //   for (let x = 0; x < img.width; x += gridSize) {
+    //     const gridElement = { x, y: img.height - (img.height % gridSize) }
+    //     grid.push(gridElement)
+    //     originalGrid.push(gridElement)
+    //   }
+    // }
   }
 
   function shuffleGrid () {
     grid = [...originalGrid]
     for (let i = grid.length - 1; i > 0; i--) {
       if (p.random() < shuffleProbability) {
-        let j = Math.floor(p.random(i + 1))
+        const j = Math.floor(p.random(i + 1))
         ;[grid[i], grid[j]] = [grid[j], grid[i]]
       }
     }
@@ -88,10 +98,10 @@ const sketch = p => {
 
   function displayShuffledImage () {
     grid.forEach((part, index) => {
-      let originalX = originalGrid[index].x
-      let originalY = originalGrid[index].y
+      const originalX = originalGrid[index].x
+      const originalY = originalGrid[index].y
       outputLayer.image(
-        img,
+        gridImg,
         part.x,
         part.y,
         gridSize,
@@ -158,10 +168,11 @@ const sketch = p => {
   function handleFile (file) {
     if (file.type === 'image') {
       img = p.loadImage(file.data, () => {
+        createGridFittingImage()
         const canvasWidth = p.windowWidth - 20
-        const canvasHeight = (img.height / img.width) * canvasWidth
+        const canvasHeight = (gridImg.height / gridImg.width) * canvasWidth
         p.resizeCanvas(canvasWidth, canvasHeight)
-        outputLayer = p.createGraphics(img.width, img.height)
+        outputLayer = p.createGraphics(gridImg.width, gridImg.height)
         divideImageIntoGrid()
         shuffleGrid()
       })

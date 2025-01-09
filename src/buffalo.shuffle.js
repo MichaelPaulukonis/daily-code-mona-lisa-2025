@@ -7,16 +7,33 @@ const sketch = p => {
   let originalGrid = []
   let outputLayer
   let shuffleSlider
-  const gridSize = 200
+  let cellSizeSlider
+  let cellSize = 200
   const modal = {
     showHelp: false,
     showUI: true
   }
   let shuffleProbability = 0.8
 
+  function generateFilename (prefix) {
+    const d = new Date()
+    return (
+      prefix + '.' +
+      d.getFullYear() +
+      '.' +
+      (d.getMonth() + 1) +
+      '.' +
+      d.getDate() +
+      d.getHours() +
+      d.getMinutes() +
+      d.getSeconds() +
+      '.png'
+    )
+  }
+
   function createGridFittingImage () {
-    const newWidth = img.width - (img.width % gridSize)
-    const newHeight = img.height - (img.height % gridSize)
+    const newWidth = img.width - (img.width % cellSize)
+    const newHeight = img.height - (img.height % cellSize)
     gridImg = p.createImage(newWidth, newHeight)
     gridImg.copy(img, 0, 0, newWidth, newHeight, 0, 0, newWidth, newHeight)
   }
@@ -29,17 +46,58 @@ const sketch = p => {
 
   p.setup = () => {
     const canvasWidth = p.windowWidth - 20
-    const canvasHeight = (gridImg.height / gridImg.width) * canvasWidth
-    p.createCanvas(canvasWidth, canvasHeight).drop(handleFile)
+    const canvasHeight = p.windowHeight - 20
+    const aspectRatio = gridImg.width / gridImg.height
+
+    let finalCanvasWidth, finalCanvasHeight
+
+    if (canvasWidth / aspectRatio <= canvasHeight) {
+      finalCanvasWidth = canvasWidth
+      finalCanvasHeight = canvasWidth / aspectRatio
+    } else {
+      finalCanvasWidth = canvasHeight * aspectRatio
+      finalCanvasHeight = canvasHeight
+    }
+
+    p.createCanvas(finalCanvasWidth, finalCanvasHeight).drop(handleFile)
+
     outputLayer = p.createGraphics(gridImg.width, gridImg.height)
     divideImageIntoGrid()
     shuffleGrid()
 
     shuffleSlider = p.createSlider(0, 1, shuffleProbability, 0.01)
-    shuffleSlider.position(10, p.height + 10)
+    shuffleSlider.position(10, p.height - 60)
     shuffleSlider.style('width', '200px')
+    shuffleSlider.attribute('title', 'Shuffle Amount')
     shuffleSlider.input(() => {
       shuffleProbability = shuffleSlider.value()
+      shuffleGrid()
+    })
+
+    cellSizeSlider = p.createSlider(10, 500, cellSize, 10)
+    cellSizeSlider.position(10, p.height - 30)
+    cellSizeSlider.style('width', '200px')
+    cellSizeSlider.attribute('title', 'Cell Size')
+    cellSizeSlider.input(() => {
+      cellSize = cellSizeSlider.value()
+      createGridFittingImage()
+      const canvasWidth = p.windowWidth - 20
+      const canvasHeight = p.windowHeight - 20
+      const aspectRatio = gridImg.width / gridImg.height
+
+      let finalCanvasWidth, finalCanvasHeight
+
+      if (canvasWidth / aspectRatio <= canvasHeight) {
+        finalCanvasWidth = canvasWidth
+        finalCanvasHeight = canvasWidth / aspectRatio
+      } else {
+        finalCanvasWidth = canvasHeight * aspectRatio
+        finalCanvasHeight = canvasHeight
+      }
+
+      p.resizeCanvas(finalCanvasWidth, finalCanvasHeight)
+      outputLayer = p.createGraphics(gridImg.width, gridImg.height)
+      divideImageIntoGrid()
       shuffleGrid()
     })
   }
@@ -62,28 +120,13 @@ const sketch = p => {
   function divideImageIntoGrid () {
     grid = []
     originalGrid = []
-    for (let y = 0; y < gridImg.height; y += gridSize) {
-      for (let x = 0; x < gridImg.width; x += gridSize) {
+    for (let y = 0; y < gridImg.height; y += cellSize) {
+      for (let x = 0; x < gridImg.width; x += cellSize) {
         const gridElement = { x, y }
         grid.push(gridElement)
         originalGrid.push(gridElement)
       }
     }
-    // Ensure the last row and column are captured (not needed if we are cropping the image)
-    // if (img.width % gridSize !== 0) {
-    //   for (let y = 0; y < img.height; y += gridSize) {
-    //     const gridElement = { x: img.width - (img.width % gridSize), y }
-    //     grid.push(gridElement)
-    //     originalGrid.push(gridElement)
-    //   }
-    // }
-    // if (img.height % gridSize !== 0) {
-    //   for (let x = 0; x < img.width; x += gridSize) {
-    //     const gridElement = { x, y: img.height - (img.height % gridSize) }
-    //     grid.push(gridElement)
-    //     originalGrid.push(gridElement)
-    //   }
-    // }
   }
 
   function shuffleGrid () {
@@ -104,12 +147,12 @@ const sketch = p => {
         gridImg,
         part.x,
         part.y,
-        gridSize,
-        gridSize,
+        cellSize,
+        cellSize,
         originalX,
         originalY,
-        gridSize,
-        gridSize
+        cellSize,
+        cellSize
       )
     })
   }
@@ -136,20 +179,24 @@ const sketch = p => {
   }
 
   function displayUI () {
-    const uiText = [`Shuffle Amount: ${(shuffleProbability * 100).toFixed(0)}%`]
+    const uiText = [
+      `Image Size: ${gridImg.width} x ${gridImg.height}`,
+      `Shuffle Amount: ${(shuffleProbability * 100).toFixed(0)}%`,
+      `Cell Size: ${cellSize}`
+    ]
 
     const boxWidth = 200
     const boxHeight = uiText.length * 20 + 20
 
     p.fill(0, 150)
     p.noStroke()
-    p.rect(5, p.height - boxHeight - 5, boxWidth, boxHeight, 10)
+    p.rect(5, p.height - boxHeight - 65, boxWidth, boxHeight, 10)
 
     p.fill('white')
     p.textSize(16)
     p.textAlign(p.LEFT, p.TOP)
     uiText.forEach((text, index) => {
-      p.text(text, 10, p.height - boxHeight + 10 + index * 20)
+      p.text(text, 10, p.height - boxHeight - 55 + index * 20)
     })
   }
 
@@ -161,7 +208,7 @@ const sketch = p => {
     } else if (p.key === 'r' || p.key === 'R') {
       shuffleGrid()
     } else if (p.key === 'S') {
-      p.save(outputLayer, 'shuffled_image.png')
+      p.save(outputLayer, generateFilename('buffalo_shuffle'))
     }
   }
 
@@ -170,8 +217,20 @@ const sketch = p => {
       img = p.loadImage(file.data, () => {
         createGridFittingImage()
         const canvasWidth = p.windowWidth - 20
-        const canvasHeight = (gridImg.height / gridImg.width) * canvasWidth
-        p.resizeCanvas(canvasWidth, canvasHeight)
+        const canvasHeight = p.windowHeight - 20
+        const aspectRatio = gridImg.width / gridImg.height
+
+        let finalCanvasWidth, finalCanvasHeight
+
+        if (canvasWidth / aspectRatio <= canvasHeight) {
+          finalCanvasWidth = canvasWidth
+          finalCanvasHeight = canvasWidth / aspectRatio
+        } else {
+          finalCanvasWidth = canvasHeight * aspectRatio
+          finalCanvasHeight = canvasHeight
+        }
+
+        p.resizeCanvas(finalCanvasWidth, finalCanvasHeight)
         outputLayer = p.createGraphics(gridImg.width, gridImg.height)
         divideImageIntoGrid()
         shuffleGrid()

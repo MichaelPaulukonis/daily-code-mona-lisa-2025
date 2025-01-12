@@ -97,14 +97,13 @@ const sketch = p => {
       currentIndex = (currentIndex + 1) % words.length
 
       p.image(targetLayer, 0, 0)
+      if (modal.autoSave) {
+        p.saveCanvas(targetLayer, generateFilename('ml.outline.letters'))
+      }
     }
 
     if (modal.showUi) {
       displayUI()
-    }
-
-    if (modal.autoSave) {
-      p.saveCanvas(targetLayer, generateFilename('ml.outline.letters'))
     }
   }
 

@@ -8,7 +8,7 @@ const sketch = function (p) {
   let combinedLayer = null
   let dirty = false
   let invert = false
-  let sizeRatio = 1.3
+  let sizeRatio = 1.0
   const density = 1
   const displaySize = 600
   const outputSize = 1000
@@ -19,11 +19,11 @@ const sketch = function (p) {
     horizontalMax: 0
   }
   let colorPairs
-  let blurAmount = 2 // Initialize blur amount outside the scope of getContrastingImage
-  let cellCount = 3 // Initialize cell count
-  let colorPairCount = 5 // Initialize color pair count
-  let cellSlider // Slider for cell count
-  let colorPairSlider // Slider for color pair count
+  let blurAmount = 2
+  let cellCount = 3
+  let colorPairCount = 5
+  let cellSlider
+  let colorPairSlider
 
   function getRandomUniqueItem (arr, excludeItems) {
     const filteredArr = arr.filter(item => !excludeItems.includes(item))
@@ -65,7 +65,7 @@ const sketch = function (p) {
   }
 
   p.preload = function () {
-    img = p.loadImage('images/mona.png')
+    img = p.loadImage('images/mona.crosshairs.png')
   }
 
   p.setup = function () {
@@ -122,7 +122,14 @@ const sketch = function (p) {
       p.image(displayLayer, p.width / 2, p.height / 2, p.width, p.height)
       dirty = false
 
-      if (modal.showUI) displayUI()
+      if (modal.showUI) {
+        displayUI()
+        cellSlider.show()
+        colorPairSlider.show()
+      } else {
+        cellSlider.hide()
+        colorPairSlider.hide()
+      }
     }
   }
 
@@ -281,34 +288,39 @@ const sketch = function (p) {
     img.drawingContext.fillRect(0, 0, img.width, img.height)
   }
 
+  // zoom in/out https://stackoverflow.com/questions/70871986/p5-js-how-do-i-zoom-to-a-point-on-the-canvas
   const buildCombinedLayer = img => {
-    const images = colorPairs.map(pair =>
+    let images = colorPairs.map(pair =>
       getContrastingImage(img, threshold, p.color(pair[0]), p.color(pair[1]))
     )
 
     displayLayer.background(255)
-    const gridSize = cellCount
-    const cellWidth = displayLayer.width / gridSize
-    const cellHeight = displayLayer.height / gridSize
+    const cellWidth = displayLayer.width / cellCount
+    const cellHeight = displayLayer.height / cellCount
+    displayLayer.imageMode(p.CENTER)
 
     const zoomedWidth = img.width * sizeRatio
     const zoomedHeight = img.height * sizeRatio
+    let imgIndex = 0
 
-    for (let y = 0; y < gridSize; y++) {
-      for (let x = 0; x < gridSize; x++) {
-        const imgIndex = (y * gridSize + x) % images.length
-        displayLayer.imageMode(p.CENTER)
+    for (let y = 0; y < cellCount; y++) {
+      for (let x = 0; x < cellCount; x++) {
+        // const imgIndex = (y * cellCount + x) % images.length
         displayLayer.image(
           images[imgIndex],
           x * cellWidth + cellWidth / 2,
           y * cellHeight + cellHeight / 2,
           cellWidth,
           cellHeight,
-          0,
-          0,
-          img.width,
-          img.height
+          (img.width - zoomedWidth) / 2, // centers when zoom larger, incorrect when zoom smaller
+          (img.height - zoomedHeight) / 2, // centers when zoom larger, incorrect when zoom smaller
+          zoomedWidth,
+          zoomedHeight
         )
+        imgIndex = (imgIndex + 1) % images.length
+        if (imgIndex === 0) {
+          images = p.shuffle(images)
+        }
       }
     }
     dirty = true
@@ -375,7 +387,7 @@ const sketch = function (p) {
     const uiText = [
       `threshold: ${threshold}`,
       `blur amount: ${blurAmount}`,
-      `zoom: ${(sizeRatio * 100).toFixed(0)}%`,
+      `zoom: ${((1 / sizeRatio) * 100).toFixed(0)}% - ${sizeRatio.toFixed(2)}`,
       `offset: ${offsetAmount}`,
       `fit method: ${scaleMethod}`,
       `invert: ${invert ? 'inverted' : 'normal'}`,

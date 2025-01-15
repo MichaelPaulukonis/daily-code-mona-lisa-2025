@@ -3,31 +3,35 @@
 // https://editor.p5js.org/MichaelPaulukonis/sketches/0HnYk05JJ
 
 class TextBox {
-  constructor (p, x, y, text, fillColor = 255, textSize = 102) {
+  constructor (p, x, y, text, font, fillColor = 255, textSize = 102) {
     this.p = p
     this.x = x
     this.y = y
     this.text = text
+    this.font = font
     this.fillColor = fillColor
     this.textSize = textSize
+    this.p.textFont(this.font)
     this.p.textSize(this.textSize)
     this.w = this.p.textWidth(this.text)
     this.h = this.p.textAscent()
     this.dragging = false
     this.offsetX = 0
     this.offsetY = 0
+    this.strokeColor = this.p.color(this.p.random(255), this.p.random(255), this.p.random(255))
   }
 
   render () {
     this.p.fill(this.fillColor)
     this.p.noStroke()
+    this.p.textFont(this.font)
     this.p.textSize(this.textSize)
     this.p.textAlign(this.p.LEFT, this.p.TOP)
     this.p.text(this.text, this.x, this.y)
 
     if (this.dragging) {
       this.p.noFill()
-      this.p.stroke(255, 0, 0)
+      this.p.stroke(this.strokeColor)
       this.p.rect(this.x, this.y, this.w, this.h)
       this.p.noStroke()
     }
@@ -44,7 +48,6 @@ const sketch = p => {
   let cellSize
   const textBoxes = []
   const displayWidth = 600
-  const targetWidth = 1000
 
   const timestamp = () => {
     const d = new Date()
@@ -70,15 +73,12 @@ const sketch = p => {
   p.setup = () => {
     p.createCanvas(displayWidth, displayWidth)
     cellSize = p.width / 2
-    p.fill(255)
-    p.textSize(102)
-    p.textAlign(p.LEFT, p.TOP)
-    p.textFont(font)
     const textBoxMona = new TextBox(
       p,
       (p.width - cellSize) / 2,
       (p.height - cellSize) / 2,
       'MONA',
+      font,
       255,
       102
     )
@@ -87,6 +87,7 @@ const sketch = p => {
       (p.width - cellSize) / 2 + 60,
       (p.height - cellSize) / 2 + 60,
       'LISA',
+      font,
       255,
       132
     )

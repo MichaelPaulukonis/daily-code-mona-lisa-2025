@@ -19,6 +19,17 @@ class TextBox {
     this.offsetX = 0
     this.offsetY = 0
     this.strokeColor = this.p.color(this.p.random(255), this.p.random(255), this.p.random(255))
+    this.slider = this.p.createSlider(10, 200, this.textSize)
+    this.slider.position(this.x, this.y + this.h + 10)
+    this.slider.input(() => this.updateTextSize(this.slider.value()))
+  }
+
+  updateTextSize (newSize) {
+    this.textSize = newSize
+    this.p.textSize(this.textSize)
+    this.w = this.p.textWidth(this.text)
+    this.h = this.p.textAscent()
+    this.slider.position(this.x, this.y + this.h + 10)
   }
 
   render () {
@@ -45,7 +56,7 @@ class TextBox {
 const sketch = p => {
   let img
   let font
-  let cellSize
+  let cellWidth, cellHeight
   const textBoxes = []
   const displayWidth = 600
 
@@ -71,12 +82,18 @@ const sketch = p => {
   }
 
   p.setup = () => {
-    p.createCanvas(displayWidth, displayWidth)
-    cellSize = p.width / 2
+    const c = p.createCanvas(displayWidth, displayWidth)
+    c.drop(handleFile)
+    cellWidth = p.width / 2
+    cellHeight = p.height / 2
+    p.fill(255)
+    p.textSize(102)
+    p.textAlign(p.LEFT, p.TOP)
+    p.textFont(font)
     const textBoxMona = new TextBox(
       p,
-      (p.width - cellSize) / 2,
-      (p.height - cellSize) / 2,
+      (p.width - cellWidth) / 2,
+      (p.height - cellHeight) / 2,
       'MONA',
       font,
       255,
@@ -84,8 +101,8 @@ const sketch = p => {
     )
     const textBoxLisa = new TextBox(
       p,
-      (p.width - cellSize) / 2 + 60,
-      (p.height - cellSize) / 2 + 60,
+      (p.width - cellWidth) / 2 + 60,
+      (p.height - cellHeight) / 2 + 60,
       'LISA',
       font,
       255,
@@ -96,9 +113,9 @@ const sketch = p => {
 
   p.draw = () => {
     p.background(255)
-    const dx = (p.width - cellSize) / 2
-    const dy = (p.height - cellSize) / 2
-    p.image(img, dx, dy, cellSize, cellSize)
+    const dx = (p.width - cellWidth) / 2
+    const dy = (p.height - cellHeight) / 2
+    p.image(img, dx, dy, cellWidth, cellHeight)
 
     textBoxes.forEach(textBox => textBox.render())
   }
@@ -118,6 +135,7 @@ const sketch = p => {
       if (textBox.dragging) {
         textBox.x = p.mouseX - textBox.offsetX
         textBox.y = p.mouseY - textBox.offsetY
+        textBox.slider.position(textBox.x, textBox.y + textBox.h + 10)
       }
     })
   }
@@ -131,6 +149,24 @@ const sketch = p => {
   p.keyPressed = () => {
     if (p.key === 'S') {
       p.saveCanvas(generateFilename('mona-text'))
+    }
+  }
+
+  function handleFile (file) {
+    if (file.type === 'image') {
+      img = p.loadImage(file.data, () => {
+        const aspectRatio = img.width / img.height
+        if (aspectRatio > 1) {
+          cellWidth = p.width * 0.7
+          cellHeight = cellWidth / aspectRatio
+        } else {
+          cellHeight = p.height * 0.7
+          cellWidth = cellHeight * aspectRatio
+        }
+        console.log('Image loaded successfully')
+      })
+    } else {
+      console.log('Not an image file!')
     }
   }
 }

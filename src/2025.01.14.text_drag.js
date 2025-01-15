@@ -2,9 +2,36 @@
 
 // https://editor.p5js.org/MichaelPaulukonis/sketches/0HnYk05JJ
 
+class TextBox {
+  constructor (p, x, y, text, fillColor = 255, textSize = 102) {
+    this.p = p
+    this.x = x
+    this.y = y
+    this.text = text
+    this.fillColor = fillColor
+    this.textSize = textSize
+    this.w = this.p.textWidth(this.text)
+    this.h = this.p.textAscent()
+  }
+
+  render () {
+    this.p.fill(this.fillColor)
+    this.p.noStroke()
+    this.p.textSize(this.textSize)
+    this.p.textAlign(this.p.LEFT, this.p.TOP)
+    this.p.text(this.text, this.x, this.y)
+    console.log(`${this.text} - x: ${this.x}, y: ${this.y}`)
+  }
+
+  containsMouse (x, y) {
+    return x > this.x && x < this.x + this.w && y > this.y && y < this.y + this.h
+  }
+}
+
 const sketch = p => {
   let img
   let font
+  let cellSize
 
   const timestamp = () => {
     const d = new Date()
@@ -24,7 +51,7 @@ const sketch = p => {
 
   let dragging = false
   let offsetX, offsetY
-  let textBox = { x: 0, y: 0, w: 0, h: 0 }
+  let textBox, textBoxLisa
 
   p.preload = () => {
     img = p.loadImage('assets/mona.png')
@@ -33,39 +60,38 @@ const sketch = p => {
 
   p.setup = () => {
     p.createCanvas(730, 720)
+    cellSize = p.width / 2
     p.fill(255)
     p.textSize(102)
     p.textAlign(p.LEFT, p.TOP)
     p.textFont(font)
-    p.background(255)
-    const cellSize = p.width / 2
-    const dx = (p.width - cellSize) / 2
-    const dy = (p.height - cellSize) / 2
-    p.image(img, dx, dy, cellSize, cellSize)
-    p.text('MONA', dx - 8, dy - 32)
-    textBox = { x: dx - 8, y: dy - 32, w: p.textWidth('MONA'), h: p.textAscent() }
-    
-    p.textAlign(p.RIGHT, p.BOTTOM)
-    p.textSize(132)
-    p.text('LISA', cellSize + dx + 16, dy + cellSize + 30)
-
+    textBox = new TextBox(
+      p,
+      (p.width - cellSize) / 2,
+      (p.height - cellSize) / 2,
+      'MONA',
+      255,
+      102
+    )
+    textBoxLisa = new TextBox(
+      p,
+      (p.width - cellSize) / 2,
+      (p.height - cellSize) / 2,
+      'LISA',
+      255,
+      132
+    )
   }
 
   p.draw = () => {
     p.background(255)
-    const cellSize = p.width / 2
     const dx = (p.width - cellSize) / 2
     const dy = (p.height - cellSize) / 2
     p.image(img, dx, dy, cellSize, cellSize)
-    
-    p.fill(255)
-    p.textSize(102)
-    p.textAlign(p.LEFT, p.TOP)
-    p.text('MONA', textBox.x, textBox.y)
-    p.textAlign(p.RIGHT, p.BOTTOM)
-    p.textSize(132)
-    p.text('LISA', cellSize + dx + 16, dy + cellSize + 30)
-    
+
+    textBox.render()
+    textBoxLisa.render()
+
     if (dragging) {
       p.noFill()
       p.stroke(255, 0, 0)
@@ -75,8 +101,7 @@ const sketch = p => {
   }
 
   p.mousePressed = () => {
-    if (p.mouseX > textBox.x && p.mouseX < textBox.x + textBox.w &&
-        p.mouseY > textBox.y && p.mouseY < textBox.y + textBox.h) {
+    if (textBox.containsMouse(p.mouseX, p.mouseY)) {
       dragging = true
       offsetX = p.mouseX - textBox.x
       offsetY = p.mouseY - textBox.y
@@ -92,6 +117,7 @@ const sketch = p => {
 
   p.mouseReleased = () => {
     dragging = false
+    console.log(textBox)
   }
 
   p.keyPressed = () => {

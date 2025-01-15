@@ -10,8 +10,12 @@ class TextBox {
     this.text = text
     this.fillColor = fillColor
     this.textSize = textSize
+    this.p.textSize(this.textSize)
     this.w = this.p.textWidth(this.text)
     this.h = this.p.textAscent()
+    this.dragging = false
+    this.offsetX = 0
+    this.offsetY = 0
   }
 
   render () {
@@ -20,7 +24,13 @@ class TextBox {
     this.p.textSize(this.textSize)
     this.p.textAlign(this.p.LEFT, this.p.TOP)
     this.p.text(this.text, this.x, this.y)
-    console.log(`${this.text} - x: ${this.x}, y: ${this.y}`)
+
+    if (this.dragging) {
+      this.p.noFill()
+      this.p.stroke(255, 0, 0)
+      this.p.rect(this.x, this.y, this.w, this.h)
+      this.p.noStroke()
+    }
   }
 
   containsMouse (x, y) {
@@ -32,6 +42,9 @@ const sketch = p => {
   let img
   let font
   let cellSize
+  const textBoxes = []
+  const displayWidth = 600
+  const targetWidth = 1000
 
   const timestamp = () => {
     const d = new Date()
@@ -49,23 +62,19 @@ const sketch = p => {
     return `${prefix || 'mona'}-${timestamp()}.png`
   }
 
-  let dragging = false
-  let offsetX, offsetY
-  let textBox, textBoxLisa
-
   p.preload = () => {
     img = p.loadImage('assets/mona.png')
     font = p.loadFont('assets/TheGreatThunder-Kd4Z.ttf')
   }
 
   p.setup = () => {
-    p.createCanvas(730, 720)
+    p.createCanvas(displayWidth, displayWidth)
     cellSize = p.width / 2
     p.fill(255)
     p.textSize(102)
     p.textAlign(p.LEFT, p.TOP)
     p.textFont(font)
-    textBox = new TextBox(
+    const textBoxMona = new TextBox(
       p,
       (p.width - cellSize) / 2,
       (p.height - cellSize) / 2,
@@ -73,14 +82,15 @@ const sketch = p => {
       255,
       102
     )
-    textBoxLisa = new TextBox(
+    const textBoxLisa = new TextBox(
       p,
-      (p.width - cellSize) / 2,
-      (p.height - cellSize) / 2,
+      (p.width - cellSize) / 2 + 60,
+      (p.height - cellSize) / 2 + 60,
       'LISA',
       255,
       132
     )
+    textBoxes.push(textBoxMona, textBoxLisa)
   }
 
   p.draw = () => {
@@ -89,35 +99,32 @@ const sketch = p => {
     const dy = (p.height - cellSize) / 2
     p.image(img, dx, dy, cellSize, cellSize)
 
-    textBox.render()
-    textBoxLisa.render()
-
-    if (dragging) {
-      p.noFill()
-      p.stroke(255, 0, 0)
-      p.rect(textBox.x, textBox.y, textBox.w, textBox.h)
-      p.noStroke()
-    }
+    textBoxes.forEach(textBox => textBox.render())
   }
 
   p.mousePressed = () => {
-    if (textBox.containsMouse(p.mouseX, p.mouseY)) {
-      dragging = true
-      offsetX = p.mouseX - textBox.x
-      offsetY = p.mouseY - textBox.y
-    }
+    textBoxes.forEach(textBox => {
+      if (textBox.containsMouse(p.mouseX, p.mouseY)) {
+        textBox.dragging = true
+        textBox.offsetX = p.mouseX - textBox.x
+        textBox.offsetY = p.mouseY - textBox.y
+      }
+    })
   }
 
   p.mouseDragged = () => {
-    if (dragging) {
-      textBox.x = p.mouseX - offsetX
-      textBox.y = p.mouseY - offsetY
-    }
+    textBoxes.forEach(textBox => {
+      if (textBox.dragging) {
+        textBox.x = p.mouseX - textBox.offsetX
+        textBox.y = p.mouseY - textBox.offsetY
+      }
+    })
   }
 
   p.mouseReleased = () => {
-    dragging = false
-    console.log(textBox)
+    textBoxes.forEach(textBox => {
+      textBox.dragging = false
+    })
   }
 
   p.keyPressed = () => {

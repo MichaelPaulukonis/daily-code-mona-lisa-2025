@@ -8,7 +8,7 @@ const sketch = function (p) {
   let combinedLayer = null
   let dirty = false
   let invert = false
-  let sizeRatio = 1.0
+  let zoomFactor = 1.0
   const density = 1
   const displaySize = 600
   const outputSize = 1000
@@ -137,10 +137,10 @@ const sketch = function (p) {
     const change = p.keyIsDown(p.SHIFT) ? 1 : 10
 
     if (p.keyIsDown(p.RIGHT_ARROW)) {
-      sizeRatio = p.constrain(sizeRatio + change / 100, 0.01, 10)
+      zoomFactor = p.constrain(zoomFactor - change / 100, 0.01, 10)
       buildCombinedLayer(img)
     } else if (p.keyIsDown(p.LEFT_ARROW)) {
-      sizeRatio = p.constrain(sizeRatio - change / 100, 0.01, 10)
+      zoomFactor = p.constrain(zoomFactor + change / 100, 0.01, 10)
       buildCombinedLayer(img)
     }
 
@@ -179,7 +179,7 @@ const sketch = function (p) {
     }
     if (p.key === 'r') {
       threshold = 128
-      sizeRatio = 1
+      zoomFactor = 1
       offset.horizontal = 0
       offset.vertical = 0
       buildCombinedLayer(img)
@@ -295,28 +295,33 @@ const sketch = function (p) {
     )
 
     displayLayer.background(255)
-    const cellWidth = displayLayer.width / cellCount
+    const cellSize = displayLayer.width / cellCount
     const cellHeight = displayLayer.height / cellCount
-    displayLayer.imageMode(p.CENTER)
+    displayLayer.imageMode(p.CORNER)
 
-    const zoomedWidth = img.width * sizeRatio
-    const zoomedHeight = img.height * sizeRatio
     let imgIndex = 0
+
+      const displayWidth = cellSize / zoomFactor
+      const displayHeight = cellSize / zoomFactor
+      const zoomedWidth = img.width * zoomFactor
+      const zoomedHeight = img.height * zoomFactor
+
+      const offsetX = (cellSize - displayWidth) / 2
+      const offsetY = (cellSize - displayHeight) / 2
+      const sx = (img.width - zoomedWidth) / 2
+      const sy = (img.height - zoomedHeight) / 2
 
     for (let y = 0; y < cellCount; y++) {
       for (let x = 0; x < cellCount; x++) {
-        // const imgIndex = (y * cellCount + x) % images.length
-        displayLayer.image(
-          images[imgIndex],
-          x * cellWidth + cellWidth / 2,
-          y * cellHeight + cellHeight / 2,
-          cellWidth,
-          cellHeight,
-          (img.width - zoomedWidth) / 2, // centers when zoom larger, incorrect when zoom smaller
-          (img.height - zoomedHeight) / 2, // centers when zoom larger, incorrect when zoom smaller
-          zoomedWidth,
-          zoomedHeight
-        )
+        const dx = y * cellSize
+        const dy = x * cellSize
+
+        if (zoomFactor > 1.0) {
+            displayLayer.image(images[imgIndex], dx + offsetX, dy + offsetY, displayWidth, displayHeight)
+        } else {
+            displayLayer.image(images[imgIndex], dx, dy, cellSize, cellSize, sx, sy, zoomedWidth, zoomedHeight)
+        }
+
         imgIndex = (imgIndex + 1) % images.length
         if (imgIndex === 0) {
           images = p.shuffle(images)
@@ -387,7 +392,7 @@ const sketch = function (p) {
     const uiText = [
       `threshold: ${threshold}`,
       `blur amount: ${blurAmount}`,
-      `zoom: ${((1 / sizeRatio) * 100).toFixed(0)}% - ${sizeRatio.toFixed(2)}`,
+      `zoom: ${((1 / zoomFactor) * 100).toFixed(0)}% - ${zoomFactor.toFixed(2)}`,
       `offset: ${offsetAmount}`,
       `fit method: ${scaleMethod}`,
       `invert: ${invert ? 'inverted' : 'normal'}`,

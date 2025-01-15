@@ -1,13 +1,19 @@
-const sketch = (p) => {
+const sketch = p => {
   let img
   let zoomFactor = 1
 
   p.preload = () => {
-    img = p.loadImage('path/to/your/image.jpg') // Replace with the path to your image
+    img = p.loadImage('images/mona.crosshairs.png')
   }
 
   p.setup = () => {
     p.createCanvas(600, 600)
+    zoomFactor = p.width / img.width
+    p.fill(0)
+    p.stroke('white')
+    p.strokeWeight(2)
+    p.textSize(16)
+    p.textAlign(p.CENTER, p.CENTER)
   }
 
   p.draw = () => {
@@ -17,6 +23,7 @@ const sketch = (p) => {
     const dx = (p.width - zoomedWidth) / 2
     const dy = (p.height - zoomedHeight) / 2
     p.image(img, dx, dy, zoomedWidth, zoomedHeight)
+    p.text(`${zoomFactor}`, p.width / 2, p.height - 20)
   }
 
   p.keyPressed = () => {

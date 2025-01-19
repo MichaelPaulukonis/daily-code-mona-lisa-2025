@@ -29,7 +29,7 @@ function generateFilename (prefix) {
 
 function preload () {
   // load each shader file (don't worry, we will come back to these!)
-  myShader = loadShader('shader.vert', 'shader.frag')
+  myShader = loadShader('2025.01.16.shader.vert', '2025.01.16.shader.frag')
   img = loadImage('images/mona.png')
 }
 

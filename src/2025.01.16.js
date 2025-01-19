@@ -1,15 +1,18 @@
 // poorly adapted from https://github.com/constraint-systems/pal/
 
+// see also https://github.com/glslify/glsl-halftone
+
 let myShader
 let img
 let blurSlider
 let blurAmount = 1
 let imgCopy
 let cachedBlur = -1
+let themeIndex = 0
 let colorTheme = null
 let pallette = null
 let shift = 0
-let shiftMax = 6
+let numColors = 6 // Default number of colors
 
 const timestamp = () => {
   const d = new Date()
@@ -29,7 +32,7 @@ function generateFilename (prefix) {
 
 function preload () {
   // load each shader file (don't worry, we will come back to these!)
-  myShader = loadShader('2025.01.16.shader.vert', '2025.01.16.shader.frag')
+  myShader = loadShader('shader.vert', 'shader.frag')
   img = loadImage('images/mona.png')
 }
 
@@ -37,7 +40,8 @@ function setup () {
   // the canvas has to be created with WEBGL mode
   createCanvas(600, 600, WEBGL)
 
-  colorTheme = random(themes)
+  themeIndex = Math.floor(random(themes.length))
+  colorTheme = themes[themeIndex]
   setHues(colorTheme)
 
   blurSlider = createSlider(0, 10, blurAmount)
@@ -52,12 +56,19 @@ function setHues (picked) {
   let hues = rotateArray(
     picked.hues.map(k => chroma(k).gl().slice(0, 3)),
     shift
-  )
+  ).slice(0, numColors) // Limit the number of hues
+
   let arranged = [
     chroma(picked.bg).gl().slice(0, 3),
     chroma(picked.fg).gl().slice(0, 3),
     ...hues
   ]
+
+  // Ensure the palette has exactly 8 elements
+  while (arranged.length < 8) {
+    arranged.push([0.0, 0.0, 0.0]) // Fill with black or any default color
+  }
+  // 6 hues from theme, plus foreground and background
 
   pallette = new Float32Array(arranged.flat())
 }
@@ -83,16 +94,14 @@ function draw () {
     imgCopy.copy(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height)
     imgCopy.filter(BLUR, blurAmount)
     imgCopy.filter(BLUR, blurAmount)
-    
   }
 
   shader(myShader)
   myShader.setUniform('u_image', imgCopy)
   myShader.setUniform('u_palette', pallette)
+  myShader.setUniform('u_numColors', numColors)
   myShader.setUniform('u_resolution', [1000, 1000])
-  myShader.setUniform('u_thresh', [0.1, 0.9]) // apply the shader to a rectangle taking up the full canvas
-
-  // plane(width, height);
+  myShader.setUniform('u_thresh', [0.2, 0.8])
   rect(0, 0, 600, 600)
 }
 
@@ -108,8 +117,34 @@ function keyPressed () {
   } else if (key === 'l') {
     shift += 1
     setHues(colorTheme)
+  } else if (key === 'j') {
+    themeIndex = (themeIndex - 1) % themes.length
+    colorTheme = themes[themeIndex]
+    setHues(colorTheme)
+  } else if (key === 'k') {
+    themeIndex = (themeIndex + 1) % themes.length
+    colorTheme = themes[themeIndex]
+    setHues(colorTheme)
   } else if (key === 'r') {
     shift = 0
+    setHues(colorTheme)
+  } else if (key === '1') {
+    numColors = 1
+    setHues(colorTheme)
+  } else if (key === '2') {
+    numColors = 2
+    setHues(colorTheme)
+  } else if (key === '3') {
+    numColors = 3
+    setHues(colorTheme)
+  } else if (key === '4') {
+    numColors = 4
+    setHues(colorTheme)
+  } else if (key === '5') {
+    numColors = 5
+    setHues(colorTheme)
+  } else if (key === '6') {
+    numColors = 6
     setHues(colorTheme)
   }
 }

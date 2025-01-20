@@ -5,6 +5,10 @@
 let myShader
 let img
 let blurSlider
+let threshLowSlider
+let threshHighSlider
+let threshLow = 0.2
+let threshHigh = 0.8
 let blurAmount = 1
 let imgCopy
 let cachedBlur = -1
@@ -12,7 +16,7 @@ let themeIndex = 0
 let colorTheme = null
 let pallette = null
 let shift = 0
-let numColors = 6 // Default number of colors
+let numColors = 8 // Default number of colors
 
 const timestamp = () => {
   const d = new Date()
@@ -47,29 +51,48 @@ function setup () {
   blurSlider = createSlider(0, 10, blurAmount)
   blurSlider.position(10, windowHeight - 30)
   blurSlider.style('width', '200px')
+  blurSlider.attribute('title', 'blur')
   blurSlider.input(() => {
     blurAmount = blurSlider.value()
+  })
+
+  threshLowSlider = createSlider(0.0, 1.0, threshLow, 0.1)
+  threshLowSlider.position(10, windowHeight - 60)
+  threshLowSlider.style('width', '200px')
+  threshLowSlider.attribute('title', 'threshold low')
+  threshLowSlider.input(() => {
+    threshLowSlider.elt.value = Math.min(0.5, threshLowSlider.value())
+    threshLow = threshLowSlider.value()
+  })
+
+  threshHighSlider = createSlider(0.0, 1.0, threshHigh, 0.1)
+  threshHighSlider.position(10, windowHeight - 90)
+  threshHighSlider.style('width', '200px')
+  threshHighSlider.attribute('title', 'threshold high')
+  threshHighSlider.input(() => {
+    threshHighSlider.elt.value = Math.max(0.5, threshHighSlider.value())
+    threshHigh = threshHighSlider.value()
   })
 }
 
 function setHues (picked) {
-  let hues = rotateArray(
-    picked.hues.map(k => chroma(k).gl().slice(0, 3)),
+  const hues = picked.hues.map(k => chroma(k).gl().slice(0, 3))
+
+  let arranged = rotateArray(
+    [
+      chroma(picked.bg).gl().slice(0, 3),
+      chroma(picked.fg).gl().slice(0, 3),
+      ...hues
+    ],
     shift
   ).slice(0, numColors) // Limit the number of hues
-
-  let arranged = [
-    chroma(picked.bg).gl().slice(0, 3),
-    chroma(picked.fg).gl().slice(0, 3),
-    ...hues
-  ]
 
   // Ensure the palette has exactly 8 elements
   while (arranged.length < 8) {
     arranged.push([0.0, 0.0, 0.0]) // Fill with black or any default color
   }
-  // 6 hues from theme, plus foreground and background
 
+  // 6 hues from theme, plus foreground and background
   pallette = new Float32Array(arranged.flat())
 }
 
@@ -101,7 +124,7 @@ function draw () {
   myShader.setUniform('u_palette', pallette)
   myShader.setUniform('u_numColors', numColors)
   myShader.setUniform('u_resolution', [1000, 1000])
-  myShader.setUniform('u_thresh', [0.2, 0.8])
+  myShader.setUniform('u_thresh', [threshLow, threshHigh])
   rect(0, 0, 600, 600)
 }
 
@@ -128,23 +151,8 @@ function keyPressed () {
   } else if (key === 'r') {
     shift = 0
     setHues(colorTheme)
-  } else if (key === '1') {
-    numColors = 1
-    setHues(colorTheme)
-  } else if (key === '2') {
-    numColors = 2
-    setHues(colorTheme)
-  } else if (key === '3') {
-    numColors = 3
-    setHues(colorTheme)
-  } else if (key === '4') {
-    numColors = 4
-    setHues(colorTheme)
-  } else if (key === '5') {
-    numColors = 5
-    setHues(colorTheme)
-  } else if (key === '6') {
-    numColors = 6
+  } else if ('12345678'.indexOf(key) !== -1) {
+    numColors = Number.parseInt(key, 10)
     setHues(colorTheme)
   }
 }

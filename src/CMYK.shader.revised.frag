@@ -2,9 +2,11 @@ precision mediump float;
 
 uniform vec2 iResolution;
 uniform sampler2D iChannel0;
+uniform float frequency;
+uniform float angle;
+
 
 bool cmyk_flag = true;
-float frequency = 100.0;
 
 float aastep(float threshold, float value) {
     float afwidth = frequency * (1.0 / 1000.0);
@@ -30,7 +32,7 @@ vec3 cmyki2rgb(vec4 c) {
 
 float halftoneratio(vec2 st, float col, float frequency, float angdegree) {
     st *= vec2(1.0, iResolution.y / iResolution.x);
-    vec2 st2 = frequency * rotate2D(st, angdegree);
+    vec2 st2 = frequency * rotate2D(st, angdegree + angle);
     vec2 uv = 2.0 * fract(st2) - 1.0;
     uv *= 0.9;
     float newcol = aastep(0.0, sqrt(col) - length(uv));

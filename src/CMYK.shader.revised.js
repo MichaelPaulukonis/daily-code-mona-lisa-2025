@@ -21,8 +21,9 @@ function generateFilename (prefix) {
 const sketch = p => {
   let shaderProgram
   let img
+  let targetLayer
   let frequencySlider
-  let frequency = 50.0
+  let frequency = 3.0
   let angleSlider
   let angle = 0.0
   let dirty = true
@@ -34,11 +35,18 @@ const sketch = p => {
 
   p.preload = () => {
     shaderProgram = p.loadShader('shader.vert', 'shader.frag')
-    // img = p.loadImage("images/mona-lisa-921x1200.png");
-    img = p.loadImage('images/mona-lisa-6195291.png')
+    img = p.loadImage("images/multi-color-20250119.194439.824.png");
+    // img = p.loadImage('images/mona-lisa-6195291.png')
   }
 
   const resizeCanvasToImage = () => {
+    if (!targetLayer) {
+      targetLayer = p.createGraphics(img.width, img.height, p.WEBGL)
+      targetLayer.shader(shaderProgram)
+    } else {
+      targetLayer.resizeCanvas(img.width, img.height)
+    }
+
     // Calculate dimensions maintaining aspect ratio
     let w = img.width
     let h = img.height
@@ -63,10 +71,11 @@ const sketch = p => {
 
   p.setup = () => {
     p.createCanvas(p.windowWidth, p.windowHeight, p.WEBGL).drop(handleFile)
-    p.shader(shaderProgram)
+    p.imageMode(p.CENTER)
+    
     resizeCanvasToImage()
 
-    frequencySlider = p.createSlider(10, 300, frequency)
+    frequencySlider = p.createSlider(1, 300, frequency)
     frequencySlider.position(10, 10)
     frequencySlider.attribute('title', 'frequency')
     frequencySlider.input(() => {
@@ -86,7 +95,7 @@ const sketch = p => {
   p.draw = () => {
     if (!pause) {
       if (autoFrequency) {
-        if (frequency <= 10 || frequency >= 300) {
+        if (frequency <= 1 || frequency >= 150) {
           autoFreqDirection *= -1
         }
         frequency = frequency + autoFreqDirection
@@ -94,10 +103,10 @@ const sketch = p => {
         dirty = true
       }
       if (autoRotate) {
-        if (angle <= 0 || angle >= 360) {
-          autoRotateDirection *= -1
-        }
-        angle = angle + autoRotateDirection
+        // if (angle <= 0 || angle >= 360) {
+        //   autoRotateDirection *= -1
+        // }
+        angle = (angle + 1) % 360
         angleSlider.value(angle)
         dirty = true
       }
@@ -105,10 +114,21 @@ const sketch = p => {
 
     if (!dirty) return
 
+    // Draw to the target layer
+    targetLayer.shader(shaderProgram)
     shaderProgram.setUniform('iChannel0', img)
-    shaderProgram.setUniform('frequency', frequency)
+    shaderProgram.setUniform('frequency', Math.ceil(frequency / 2))
     shaderProgram.setUniform('angle', angle)
-    p.rect(0, 0, p.width, p.height)
+    targetLayer.rect(0, 0, targetLayer.width, targetLayer.height)
+
+    p.clear()
+    p.image(targetLayer, 0, 0, p.width, p.height)
+    // crosshairs for center testing
+    p.stroke(0)
+    p.strokeWeight(1)
+    p.line(-p.width / 2, 0, p.width / 2, 0)
+    p.line(0, -p.height / 2, 0, p.height / 2)
+    
     dirty = false
   }
 
@@ -131,7 +151,7 @@ const sketch = p => {
       pause = !pause
     }
     if (p.key === 'S') {
-      p.saveCanvas(generateFilename('mona-cmyk'))
+      targetLayer.save(generateFilename('mona-cmyk'))
     }
   }
 

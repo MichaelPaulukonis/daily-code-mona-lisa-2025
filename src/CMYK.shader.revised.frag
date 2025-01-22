@@ -19,6 +19,7 @@ float aastep(float threshold, float value) {
 vec2 rotate2D(vec2 v, float angdegree) {
     float c = cos(radians(angdegree));
     float s = sin(radians(angdegree));
+    // v /= vec2(0.5);
     return mat2(c, -s, s, c) * v;
 }
 
@@ -33,7 +34,11 @@ vec3 cmyki2rgb(vec4 c) {
 
 float halftoneratio(vec2 st, float col, float frequency, float angdegree) {
     st *= vec2(1.0, iResolution.y / iResolution.x);
+    st -= vec2(1.0);
+    
     vec2 st2 = frequency * rotate2D(st, angdegree + angle);
+    st2 += vec2(1.0);
+    
     vec2 uv = 2.0 * fract(st2) - 1.0;
     uv *= 0.9;
     float newcol = aastep(0.0, sqrt(col) - length(uv));
@@ -42,9 +47,7 @@ float halftoneratio(vec2 st, float col, float frequency, float angdegree) {
 
 void main() {
     vec2 uv = gl_FragCoord.xy / iResolution.xy;
-    uv.y = 1.0 - uv.y;
       
-    // vec3 texcolor = texture2D(iChannel0, uv).xyz;
     vec3 texcolor = texture2D(iChannel0, v_texCoord).xyz;
   
     vec3 rgbscreen;

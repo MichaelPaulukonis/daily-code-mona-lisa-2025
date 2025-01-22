@@ -32,11 +32,13 @@ const sketch = p => {
   let autoFreqDirection = -1
   let autoRotateDirection = -1
   let pause = false
+  let showCrosshairs = false
 
   p.preload = () => {
     shaderProgram = p.loadShader('shader.vert', 'shader.frag')
-    img = p.loadImage("images/multi-color-20250119.194439.824.png");
+    img = p.loadImage('images/multi-color-20250119.194439.824.png')
     // img = p.loadImage('images/mona-lisa-6195291.png')
+    // img = p.loadImage('images/PXL_20240902_192356810.jpg')
   }
 
   const resizeCanvasToImage = () => {
@@ -61,7 +63,7 @@ const sketch = p => {
         h = maxDim
       }
     }
-
+    console.log(img.width, img.height, w, h)
     p.resizeCanvas(w, h)
 
     // Update shader resolution uniform
@@ -72,7 +74,7 @@ const sketch = p => {
   p.setup = () => {
     p.createCanvas(p.windowWidth, p.windowHeight, p.WEBGL).drop(handleFile)
     p.imageMode(p.CENTER)
-    
+
     resizeCanvasToImage()
 
     frequencySlider = p.createSlider(1, 300, frequency)
@@ -103,6 +105,7 @@ const sketch = p => {
         dirty = true
       }
       if (autoRotate) {
+        // atm, I prefer angle t contiously spin
         // if (angle <= 0 || angle >= 360) {
         //   autoRotateDirection *= -1
         // }
@@ -123,24 +126,29 @@ const sketch = p => {
 
     p.clear()
     p.image(targetLayer, 0, 0, p.width, p.height)
-    // crosshairs for center testing
-    p.stroke(0)
-    p.strokeWeight(1)
-    p.line(-p.width / 2, 0, p.width / 2, 0)
-    p.line(0, -p.height / 2, 0, p.height / 2)
-    
+    if (showCrosshairs) {
+      // crosshairs for center testing
+      p.stroke(0)
+      p.strokeWeight(1)
+      p.line(-p.width / 2, 0, p.width / 2, 0)
+      p.line(0, -p.height / 2, 0, p.height / 2)
+    }
     dirty = false
   }
 
   p.keyPressed = () => {
-    if (p.key === 'r' || p.key === 'R') {
+    if (p.key === 'c') {
+      showCrosshairs = !showCrosshairs
+      dirty = true
+    }
+    if ((!autoRotate || pause) && (p.key === 'r' || p.key === 'R')) {
       const direction = p.key === 'r' ? 1 : -1
       angle = (angle + direction) % 360
       angleSlider.value(angle)
       dirty = true
-    } else if (p.key === 'f' || p.key === 'F') {
+    } else if (!(autoFrequency || pause) && (p.key === 'f' || p.key === 'F')) {
       const direction = p.key === 'f' ? 1 : -1
-      frequency = (frequency + direction) % 300
+      frequency = ((frequency - 1 + direction + 300) % 300) + 1
       frequencySlider.value(frequency)
       dirty = true
     } else if (p.key === 'a') {
@@ -158,6 +166,12 @@ const sketch = p => {
   function handleFile (file) {
     if (file.type === 'image') {
       img = p.loadImage(file.data, () => {
+        // large images throw error:
+        // .WebGL-0x1040cfc4700] GL_INVALID_VALUE: Negative offset.
+        // fails with image @ size 3468x2611
+        // fails with image @ size 3264x2458
+        // [.WebGL-0x10417e17100] GL_OUT_OF_MEMORY: Error: 0x00000505, in ../../third_party/angle/src/libANGLE/renderer/gl/RenderbufferGL.cpp, setStorageMultisample:83. Internal error: 0x00000505: Unexpected driver error.
+
         resizeCanvasToImage()
         console.log('Image loaded successfully')
       })

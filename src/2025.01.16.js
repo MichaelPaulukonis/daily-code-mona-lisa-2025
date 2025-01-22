@@ -78,7 +78,7 @@ function setup () {
 function setHues (picked) {
   const hues = picked.hues.map(k => chroma(k).gl().slice(0, 3))
 
-  let arranged = rotateArray(
+  const arranged = rotateArray(
     [
       chroma(picked.bg).gl().slice(0, 3),
       chroma(picked.fg).gl().slice(0, 3),
@@ -97,16 +97,9 @@ function setHues (picked) {
 }
 
 function rotateArray (arr, shiftAmount) {
-  // Handle empty array or no shift needed
   if (!arr.length || shiftAmount === 0) return arr
-
-  // Normalize shift amount to array length
   const shift = shiftAmount % arr.length
-
-  // Handle negative shifts
   const normalizedShift = shift >= 0 ? shift : arr.length + shift
-
-  // Slice and concat to create rotated array
   return arr.slice(normalizedShift).concat(arr.slice(0, normalizedShift))
 }
 

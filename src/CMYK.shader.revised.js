@@ -22,7 +22,7 @@ const sketch = p => {
   let shaderProgram
   let img
   let frequencySlider
-  let frequency = 150.0
+  let frequency = 50.0
   let angleSlider
   let angle = 0.0
   let dirty = true
@@ -34,7 +34,8 @@ const sketch = p => {
 
   p.preload = () => {
     shaderProgram = p.loadShader('shader.vert', 'shader.frag')
-    img = p.loadImage('images/mona-lisa-921x1200.png')
+    // img = p.loadImage("images/mona-lisa-921x1200.png");
+    img = p.loadImage('images/mona-lisa-6195291.png')
   }
 
   const resizeCanvasToImage = () => {
@@ -126,7 +127,7 @@ const sketch = p => {
       autoRotate = !autoRotate
     } else if (p.key === 'A') {
       autoFrequency = !autoFrequency
-    } else if (p.key === 'p' || p.key === 'P') {
+    } else if (p.key === 'p' || p.key === ' ') {
       pause = !pause
     }
     if (p.key === 'S') {

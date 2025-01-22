@@ -5,6 +5,7 @@ uniform sampler2D iChannel0;
 uniform float frequency;
 uniform float angle;
 
+varying vec2 v_texCoord;
 
 bool cmyk_flag = true;
 
@@ -41,14 +42,13 @@ float halftoneratio(vec2 st, float col, float frequency, float angdegree) {
 
 void main() {
     vec2 uv = gl_FragCoord.xy / iResolution.xy;
-    uv.y = 1.0 - uv.y;  // Flip the Y coordinate
-
-    float n = 0.1;
-    vec3 white = vec3(1.0, 1.0, 1.0);
-    vec3 black = vec3(0.0, 0.0, 0.0);
-    vec3 texcolor = texture2D(iChannel0, uv).xyz;
-
+    uv.y = 1.0 - uv.y;
+      
+    // vec3 texcolor = texture2D(iChannel0, uv).xyz;
+    vec3 texcolor = texture2D(iChannel0, v_texCoord).xyz;
+  
     vec3 rgbscreen;
+
     if (cmyk_flag) {
         vec4 cmyk = rgb2cmyki(texcolor);
 

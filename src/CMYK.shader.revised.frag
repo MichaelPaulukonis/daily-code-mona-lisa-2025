@@ -4,10 +4,9 @@ uniform vec2 iResolution;
 uniform sampler2D iChannel0;
 uniform float frequency;
 uniform float angle;
+uniform bool cmyk_flag;
 
 varying vec2 v_texCoord;
-
-bool cmyk_flag = true;
 
 float aastep(float threshold, float value) {
     float afwidth = frequency * (1.0 / 1000.0);

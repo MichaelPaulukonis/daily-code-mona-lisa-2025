@@ -7,6 +7,14 @@ For a month.
 Hopefully.
 
 
+## shader notes
+
+```
+console.log('Max texture size:', document.createElement('canvas').getContext('webgl').getParameter(WebGLRenderingContext.MAX_TEXTURE_SIZE));
+```
+
+https://waelyasmina.net/articles/9-hands-on-glsl-examples-for-shader-newbies/
+
 
 ## P5.js-vite Starter Template 🚀
 

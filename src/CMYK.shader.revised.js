@@ -35,6 +35,8 @@ const sketch = p => {
   let showCrosshairs = false
   let gridSize = 1
   let useCMYK = true
+  let autoSave = false
+  let autoSaveCount = 0
 
   p.preload = () => {
     shaderProgram = p.loadShader('shader.vert', 'shader.frag')
@@ -137,27 +139,38 @@ const sketch = p => {
     })
   }
 
-  // TODO: add toggle for CMYK flag
-  // TODO: add simple UI for frequency and angle, toggle, autoRotate and autoFrequency
   // more complicated values for autoRotate and autoFrequency
 
   p.draw = () => {
     if (!pause) {
-      if (autoFrequency) {
-        if (frequency <= 1 || frequency >= 150) {
-          autoFreqDirection *= -1
+      if (autoSave) {
+        if (angle >= 360) {
+          autoSave = false // Stop when we reach 360
+          dirty = true
+          p.frameRate(60)
+          return
         }
-        frequency = frequency + autoFreqDirection
-        frequencySlider.value(frequency)
+
+        targetLayer.save(generateFilename(`mona-cmyk_${String(autoSaveCount).padStart(4, '0')}`))
+        angle += 5 // Increment by 5 degrees
+        angleSlider.value(angle)
+        autoSaveCount++
         dirty = true
-      }
-      if (autoRotate) {
+      } else if (autoRotate) {
         // atm, I prefer angle t contiously spin
         // if (angle <= 0 || angle >= 360) {
         //   autoRotateDirection *= -1
         // }
         angle = (angle + 1) % 360
         angleSlider.value(angle)
+        dirty = true
+      }
+      if (autoFrequency) {
+        if (frequency <= 1 || frequency >= 150) {
+          autoFreqDirection *= -1
+        }
+        frequency = frequency + autoFreqDirection
+        frequencySlider.value(frequency)
         dirty = true
       }
     }
@@ -209,8 +222,16 @@ const sketch = p => {
       dirty = true
     } else if (p.key === 'p' || p.key === ' ') {
       pause = !pause
-    }
-    if (p.key === 'S') {
+    } else if (p.key === 'Q') {
+      // Start autosave sequence
+      autoSave = true
+      p.frameRate(5)
+      angle = 1 // Reset to start
+      angleSlider.value(angle)
+      autoSaveCount = 0
+      autoRotate = false // Disable auto-rotate if it's on
+      dirty = true
+    } else if (p.key === 'S') {
       targetLayer.save(generateFilename('mona-cmyk'))
     }
   }
@@ -254,6 +275,7 @@ const sketch = p => {
       `angle: ${angle.toFixed(1)}°`,
       `image: ${img.width}x${img.height}`,
       `display: ${p.width}x${p.height}`,
+      autoSave ? 'AUTO-SAVE ON' : '',
       autoRotate ? 'auto-rotate ON' : '',
       autoFrequency ? 'auto-frequency ON' : '',
       pause ? 'PAUSED' : ''

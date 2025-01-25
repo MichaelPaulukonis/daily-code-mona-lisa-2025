@@ -23,6 +23,8 @@ function generateFilename (prefix) {
 const sketch = p => {
   let cmykShader
   let remapShader
+  let cmykEnabled = true
+  let remapEnabled = true
   let img
   let cmykLayer
   let remapLayer
@@ -237,23 +239,28 @@ const sketch = p => {
     }
 
     if (!dirty) return
+    let currentLayer = img // Start with the original image
 
-    // Draw to the target layer
-    cmykLayer.shader(cmykShader)
-    cmykShader.setUniform('iChannel0', img)
-    cmykShader.setUniform('frequency', Math.ceil(frequency / 2))
-    cmykShader.setUniform('angle', angle)
-    cmykShader.setUniform('cmyk_flag', useCMYK)
-    cmykLayer.rect(0, 0, cmykLayer.width, cmykLayer.height)
-
-    remapLayer.shader(remapShader)
-    remapShader.setUniform('u_image', cmykLayer)
-    remapShader.setUniform('u_palette', pallette)
-    remapShader.setUniform('u_numColors', numColors)
-    remapLayer.rect(0, 0, remapLayer.width, remapLayer.height)
+    if (cmykEnabled) {
+      cmykLayer.shader(cmykShader)
+      cmykShader.setUniform('iChannel0', currentLayer)
+      cmykShader.setUniform('frequency', frequency)
+      cmykShader.setUniform('angle', angle)
+      cmykShader.setUniform('cmyk_flag', useCMYK)
+      cmykLayer.rect(0, 0, cmykLayer.width, cmykLayer.height)
+      currentLayer = cmykLayer
+    }
+    if (remapEnabled) {
+      remapLayer.shader(remapShader)
+      remapShader.setUniform('u_image', currentLayer)
+      remapShader.setUniform('u_palette', pallette)
+      remapShader.setUniform('u_numColors', numColors)
+      remapLayer.rect(0, 0, remapLayer.width, remapLayer.height)
+      currentLayer = remapLayer
+    }
 
     p.clear()
-    p.image(remapLayer, 0, 0, p.width, p.height)
+    p.image(currentLayer, 0, 0, p.width, p.height)
     if (showCrosshairs) {
       displayGrid(p, gridSize)
     }
@@ -262,7 +269,13 @@ const sketch = p => {
   }
 
   p.keyPressed = () => {
-    if (p.key === 'z') {
+    if (p.key === '1') {
+      cmykEnabled = !cmykEnabled
+      dirty = true
+    } else if (p.key === '!') {
+      remapEnabled = !remapEnabled
+      dirty = true
+    } else if (p.key === 'z') {
       // TODO: find a better key
       colorTheme = p.random(themes)
       setHues(colorTheme)

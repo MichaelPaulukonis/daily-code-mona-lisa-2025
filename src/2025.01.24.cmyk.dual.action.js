@@ -23,11 +23,17 @@ function generateFilename (prefix) {
 const sketch = p => {
   let cmykShader
   let remapShader
+  let blurShaderH
+  let blurShaderV
   let cmykEnabled = true
   let remapEnabled = true
+  let blurEnabled = true
   let img
   let cmykLayer
   let remapLayer
+  let blurLayerH
+  let blurLayerV
+  let targetLayer
   let frequencySlider
   let frequency = 20.0
   let angleSlider
@@ -53,8 +59,10 @@ const sketch = p => {
   p.preload = () => {
     cmykShader = p.loadShader('2025.01.24.cmyk.vert', '2025.01.24.cmyk.frag')
     remapShader = p.loadShader('2025.01.24.remap.vert', '2025.01.24.remap.frag')
-    img = p.loadImage('images/multi-color-20250119.194439.824.png')
-    // img = p.loadImage('images/mona-lisa-6195291.png')
+    blurShaderH = p.loadShader('2025.01.24.blur.vert', '2025.01.24.blur.frag')
+    blurShaderV = p.loadShader('2025.01.24.blur.vert', '2025.01.24.blur.frag')
+    // img = p.loadImage('images/multi-color-20250119.194439.824.png')
+    img = p.loadImage('images/mona-lisa-6195291.png')
     // img = p.loadImage('images/PXL_20240902_192356810.jpg')
   }
 
@@ -137,6 +145,25 @@ const sketch = p => {
       remapLayer.resizeCanvas(img.width, img.height)
     }
 
+    if (!blurLayerH) {
+      blurLayerH = p.createGraphics(img.width, img.height, p.WEBGL)
+      blurLayerH.shader(blurShaderH)
+    } else {
+      blurLayerH.resizeCanvas(img.width, img.height)
+    }
+    if (!blurLayerV) {
+      blurLayerV = p.createGraphics(img.width, img.height, p.WEBGL)
+      blurLayerV.shader(blurShaderV)
+    } else {
+      blurLayerV.resizeCanvas(img.width, img.height)
+    }
+
+    if (!targetLayer) {
+      targetLayer = p.createGraphics(img.width, img.height)
+    } else {
+      targetLayer.resizeCanvas(img.width, img.height)
+    }
+
     // Calculate dimensions maintaining aspect ratio
     let w = img.width
     let h = img.height
@@ -210,7 +237,7 @@ const sketch = p => {
           return
         }
 
-        remapLayer.save(
+        targetLayer.save(
           generateFilename(
             `mona-cmyk_${String(autoSaveCount).padStart(4, '0')}`
           )
@@ -241,6 +268,26 @@ const sketch = p => {
     if (!dirty) return
     let currentLayer = img // Start with the original image
 
+    if (blurEnabled) {
+      blurShaderH.setUniform('tex0', currentLayer)
+      blurShaderH.setUniform('texelSize', [
+        1.0 / currentLayer.width,
+        1.0 / currentLayer.height
+      ])
+      blurShaderH.setUniform('direction', [1.0, 1.0])
+      blurLayerH.rect(0, 0, blurLayerH.width, blurLayerH.height)
+
+      blurShaderV.setUniform('tex0', blurLayerH)
+      blurShaderV.setUniform('texelSize', [
+        1.0 / currentLayer.width,
+        1.0 / currentLayer.height
+      ])
+      blurShaderV.setUniform('direction', [1.0, 1.0])
+      blurLayerV.rect(0, 0, blurLayerV.width, blurLayerV.height)
+
+      currentLayer = blurLayerV
+    }
+
     if (cmykEnabled) {
       cmykLayer.shader(cmykShader)
       cmykShader.setUniform('iChannel0', currentLayer)
@@ -259,8 +306,10 @@ const sketch = p => {
       currentLayer = remapLayer
     }
 
+    targetLayer.image(currentLayer, 0, 0, targetLayer.width, targetLayer.height)
+
     p.clear()
-    p.image(currentLayer, 0, 0, p.width, p.height)
+    p.image(targetLayer, 0, 0, p.width, p.height)
     if (showCrosshairs) {
       displayGrid(p, gridSize)
     }
@@ -274,6 +323,9 @@ const sketch = p => {
       dirty = true
     } else if (p.key === '!') {
       remapEnabled = !remapEnabled
+      dirty = true
+    } else if (p.key === '@') {
+      blurEnabled = !blurEnabled
       dirty = true
     } else if (p.key === 'z') {
       // TODO: find a better key
@@ -343,7 +395,7 @@ const sketch = p => {
       autoRotate = false // Disable auto-rotate if it's on
       dirty = true
     } else if (p.key === 'S') {
-      remapLayer.save(generateFilename('mona-cmyk'))
+      targetLayer.save(generateFilename('mona-cmyk'))
     }
   }
 
@@ -385,7 +437,7 @@ const sketch = p => {
       `frequency: ${Math.ceil(frequency / 2)}`,
       `angle: ${angle.toFixed(1)}°`,
       `image: ${img.width}x${img.height}`,
-      `display: ${p.width}x${p.height}`,
+      `display: ${Math.floor(p.width)}x${Math.floor(p.height)}`,
       autoSave ? 'AUTO-SAVE ON' : '',
       autoRotate ? 'auto-rotate ON' : '',
       autoFrequency ? 'auto-frequency ON' : '',

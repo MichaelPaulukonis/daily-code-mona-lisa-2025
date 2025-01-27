@@ -16,7 +16,7 @@ function generateFilename (prefix) {
   return `${prefix || 'mona'}-${timestamp()}.png`
 }
 
-let sketch = function (p) {
+const sketch = function (p) {
   let colorImg
   let bwImg
 
@@ -26,22 +26,53 @@ let sketch = function (p) {
   }
 
   p.setup = function () {
-    p.createCanvas(colorImg.width, colorImg.height)
+    p.createCanvas(colorImg.width, colorImg.height).drop(handleFile)
     p.noLoop()
   }
 
   p.draw = function () {
+    paint()
+  }
+
+  function paint () {
     p.background(255)
 
-    p.image(bwImg, 0, 0)
+    // Calculate scaling to fit mask within canvas
+    const scaleW = p.width / bwImg.width
+    const scaleH = p.height / bwImg.height
+    const scale = Math.min(scaleW, scaleH, 1) // Don't scale up, only down if needed
 
-    // Set the globalCompositeOperation to use the black-and-white image as a mask
+    // Calculate new dimensions
+    const newWidth = bwImg.width * scale
+    const newHeight = bwImg.height * scale
+
+    // Calculate center position
+    const maskX = (p.width - newWidth) / 2
+    const maskY = (p.height - newHeight) / 2
+
+    // Draw the centered, scaled mask
+    p.image(bwImg, maskX, maskY, newWidth, newHeight)
+
     p.drawingContext.globalCompositeOperation = 'lighten'
-
     p.image(colorImg, 0, 0)
-
-    // Reset the globalCompositeOperation to default
     p.drawingContext.globalCompositeOperation = 'source-over'
+  }
+
+  p.keyPressed = () => {
+    if (p.key === 'S') {
+      p.save(generateFilename('mona-mask'))
+    }
+  }
+
+  function handleFile (file) {
+    if (file.type === 'image') {
+      bwImg = p.loadImage(file.data, () => {
+        paint()
+        console.log('Image loaded successfully')
+      })
+    } else {
+      console.log('Not an image file!')
+    }
   }
 }
 

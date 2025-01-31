@@ -1,59 +1,69 @@
 /* global p5 */
 
-const sketch = p => {
-  // the shader variable
-  let camShader
+// adapted from https://github.com/aferriss/p5jsShaderExamples.git
+// 4_image-effects/4-5_stripes-from-image
 
-  // the camera variable
-  let cam
+const sketch = p => {
+  let imgShader
+  let img
   let horizontal = false
 
   p.preload = () => {
-    // load the shader
-    camShader = p.loadShader('effect.vert', 'effect.frag')
+    imgShader = p.loadShader('effect.vert', 'effect.frag')
+    img = p.loadImage('images/mona-lisa-768x1000.png')
   }
 
   p.setup = () => {
-    // shaders require WEBGL mode to work
-    p.createCanvas(p.windowWidth, p.windowHeight, p.WEBGL)
+    p.createCanvas(img.width, img.height, p.WEBGL)
+    resizeCanvasToImage()
     p.noStroke()
-
-    // initialize the webcam at the window size
-    cam = p.createCapture(p.VIDEO)
-    cam.size(p.windowWidth, p.windowHeight)
-
-    // hide the html element that createCapture adds to the screen
-    cam.hide()
   }
 
   p.draw = () => {
-    // shader() sets the active shader with our shader
-    p.shader(camShader)
+    p.shader(imgShader)
 
     // Calculate normalized position (0.0 to 1.0) based on height
     const linePosition = horizontal
       ? (p.frameCount % p.height) / p.height
       : (p.frameCount % p.width) / p.width
 
-    // lets just send the cam to our shader as a uniform
-    camShader.setUniform('tex0', cam)
-    camShader.setUniform('line', linePosition)
-    camShader.setUniform('horizontal', horizontal)
+    // lets just send the image to our shader as a uniform
+    imgShader.setUniform('tex0', img)
+    imgShader.setUniform('line', linePosition)
+    imgShader.setUniform('horizontal', horizontal)
 
     // rect gives us some geometry on the screen
     p.rect(0, 0, p.width, p.height)
   }
 
+  const resizeCanvasToImage = () => {
+    // Calculate dimensions maintaining aspect ratio
+    let w = img.width
+    let h = img.height
+    const maxDim = 600
+
+    if (w > maxDim || h > maxDim) {
+      if (w > h) {
+        h = (maxDim * h) / w
+        w = maxDim
+      } else {
+        w = (maxDim * w) / h
+        h = maxDim
+      }
+    }
+
+    p.resizeCanvas(w, h)
+
+    // Update shader resolution uniform
+    // shaderProgram.setUniform('u_resolution', [img.width, img.height])
+  }
+  
   p.keyPressed = function () {
     if (p.key === 'S') {
       p.saveCanvas(generateFilename('mona-stripes'))
     } else if (p.key === ' ') {
       horizontal = !horizontal
     }
-  }
-
-  p.windowResized = () => {
-    p.resizeCanvas(p.windowWidth, p.windowHeight)
   }
 }
 

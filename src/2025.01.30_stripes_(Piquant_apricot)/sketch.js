@@ -7,6 +7,11 @@ const sketch = p => {
   let imgShader
   let img
   let horizontal = false
+  let autoSave = false
+  let autoSaveCount = 0
+  let totalFrames = 0
+  let frameOffset = 0
+  let boxHeight = 0
 
   p.preload = () => {
     imgShader = p.loadShader('effect.vert', 'effect.frag')
@@ -17,6 +22,14 @@ const sketch = p => {
     p.createCanvas(img.width, img.height, p.WEBGL)
     resizeCanvasToImage()
     p.noStroke()
+
+    const displayPanel = p.createDiv('')
+    displayPanel.id('displayPanel')
+    displayPanel.style('background-color', 'rgba(0, 0, 0, 0.6)')
+    displayPanel.style('border-radius', '10px')
+    displayPanel.style('padding', '10px')
+    displayPanel.style('color', 'white')
+    displayPanel.style('font-size', '16px')
   }
 
   p.draw = () => {
@@ -24,8 +37,8 @@ const sketch = p => {
 
     // Calculate normalized position (0.0 to 1.0) based on height
     const linePosition = horizontal
-      ? (p.frameCount % p.height) / p.height
-      : (p.frameCount % p.width) / p.width
+      ? ((p.frameCount - frameOffset) % p.height) / p.height
+      : ((p.frameCount - frameOffset) % p.width) / p.width
 
     // lets just send the image to our shader as a uniform
     imgShader.setUniform('tex0', img)
@@ -34,6 +47,19 @@ const sketch = p => {
 
     // rect gives us some geometry on the screen
     p.rect(0, 0, p.width, p.height)
+
+    if (autoSave && autoSaveCount < totalFrames) {
+      p.saveCanvas(
+        generateFilename(
+          `mona-stripes_${String(autoSaveCount).padStart(4, '0')}`
+        )
+      )
+      autoSaveCount++
+    } else {
+      autoSave = false
+      p.frameRate(60)
+    }
+    showDisplayPanel()
   }
 
   const resizeCanvasToImage = () => {
@@ -52,18 +78,49 @@ const sketch = p => {
       }
     }
 
-    p.resizeCanvas(w, h)
-
-    // Update shader resolution uniform
-    // shaderProgram.setUniform('u_resolution', [img.width, img.height])
+    p.resizeCanvas(Math.floor(w), Math.floor(h))
   }
-  
+
   p.keyPressed = function () {
-    if (p.key === 'S') {
+    if (p.key === 'A') {
+      autoSave = !autoSave
+      if (autoSave) {
+        p.frameRate(5)
+        totalFrames = Math.floor(horizontal ? p.width : p.height)
+        autoSaveCount = 0
+        frameOffset = p.frameCount
+      } else {
+        p.frameRate(60)
+      }
+    } else if (p.key === 'S') {
       p.saveCanvas(generateFilename('mona-stripes'))
-    } else if (p.key === ' ') {
+    } else if (p.key === ' ' && !autoSave) {
       horizontal = !horizontal
     }
+  }
+
+  const showDisplayPanel = () => {
+    const uiText = [
+      `Autosave: ${autoSave}`,
+      autoSave ? `Frame: ${autoSaveCount} / ${totalFrames}` : '',
+      horizontal ? 'horizontal' : 'vertical',
+      `canvas: ${p.width}x${p.height}`
+    ].filter(Boolean) // removes empty strings
+
+    const displayPanel = document.getElementById('displayPanel')
+    displayPanel.innerHTML = '' // Clear previous content
+
+    uiText.forEach(text => {
+      const textElement = document.createElement('div')
+      textElement.textContent = text
+      displayPanel.appendChild(textElement)
+    })
+
+    // Calculate boxHeight based on the content
+    boxHeight = displayPanel.clientHeight
+    displayPanel.style.position = 'absolute'
+    displayPanel.style.left = '5px'
+    displayPanel.style.top = `${p.height - boxHeight - 5}px`
   }
 }
 
@@ -79,7 +136,7 @@ const timestamp = () => {
   return `${year}${month}${day}.${hour}${min}${secs}.${millis}`
 }
 
-function generateFilename (prefix) {
+function generateFilename (prefix, counter = null) {
   return `${prefix || 'mona'}-${timestamp()}.png`
 }
 

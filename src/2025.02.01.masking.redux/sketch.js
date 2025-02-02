@@ -33,13 +33,28 @@ const sketch = function (p) {
   let newWidth
   let newHeight
   let pause = false
-  const positions = []
-  let staticPositions = []
+  let cells = []
+  let imageCells = []
   let usedMasks = []
   let autoSave = false
   let autoSaveCount = 0
   const totalFrames = 1000
+  const imageCount = 10 // not the right name
   let boxHeight = 0
+
+  class Cell {
+    constructor ({ row, col }) {
+      this.location = { row, col }
+    }
+  }
+
+  class ImageCell extends Cell {
+    constructor ({ row, col }, mask, lifetime) {
+      super({ row, col })
+      this.mask = mask
+      this.lifetime = lifetime
+    }
+  }
 
   p.preload = function () {
     colorImg = p.loadImage('images/mona_square.jpeg')
@@ -63,25 +78,15 @@ const sketch = function (p) {
     ]
   }
 
-  function initializePositions () {
-    // Randomly shuffle the positions
-    const shuffledPositions = p.shuffle(positions)
-
-    // Only use as many positions as we have masks
-    staticPositions = shuffledPositions.slice(0, 10).map((pos, index) => ({
-      position: pos,
-      mask: masks[index]
-    }))
-
-    // Track used masks
-    usedMasks = masks.slice(0, 10)
+  function initializeCells () {
+    const shuffledCells = p.shuffle(cells)
+    imageCells = shuffledCells
+      .slice(0, imageCount)
+      .map((cell, index) => new ImageCell(cell.location, masks[index], Math.round(p.random(3, 20))))
+    usedMasks = masks.slice(0, imageCells.length)
   }
 
-  p.setup = function () {
-    targetLayer = p.createGraphics(colorImg.width, colorImg.height)
-    p.createCanvas(600, 600).drop(handleFile)
-    p.frameRate(15)
-
+  function setGridValues () {
     gridSize = 5
     inset = 20
     cellWidth = targetLayer.width / gridSize
@@ -97,12 +102,21 @@ const sketch = function (p) {
     newWidth = masks[0].width * scale
     newHeight = masks[0].height * scale
 
+    cells = []
     // Create an array of all possible cell positions
     for (let row = 0; row < gridSize; row++) {
       for (let col = 0; col < gridSize; col++) {
-        positions.push({ row, col })
+        cells.push(new Cell({ row, col }))
       }
     }
+  }
+
+  p.setup = function () {
+    targetLayer = p.createGraphics(colorImg.width, colorImg.height)
+    p.createCanvas(600, 600).drop(handleFile)
+    p.frameRate(15)
+
+    setGridValues()
 
     const displayPanel = p.createDiv('')
     displayPanel.id('displayPanel')
@@ -116,33 +130,37 @@ const sketch = function (p) {
   function updateTargetLayer () {
     targetLayer.background(255)
 
-    if (staticPositions.length === 0) {
-      initializePositions()
+    if (imageCells.length === 0) {
+      initializeCells()
     } else {
-      // Find a new random unpopulated position
-      const unpopulatedPositions = positions.filter(
-        pos => !staticPositions.some(sp => sp.position === pos)
+      const emptyCells = cells.filter(
+        cell => !imageCells.some(ic => ic.location === cell.location)
       )
-      const newPosition = p.random(unpopulatedPositions)
 
-      // Find a new random unused mask
-      const unusedMasks = masks.filter(mask => !usedMasks.includes(mask))
-      const newMask = p.random(unusedMasks)
+      let defunctCount = 0
+      imageCells.forEach(ic => {
+        ic.lifetime--
+        if (ic.lifetime <= 0) {
+          emptyCells.push(new Cell(ic.location))
+          imageCells = imageCells.filter(c => c !== ic)
+          defunctCount++
+        }
+      })
 
-      // Move the first cell to the new position and assign a new mask
-      const firstCell = staticPositions.shift()
-      firstCell.position = newPosition
-      firstCell.mask = newMask
-      staticPositions.push(firstCell)
-
-      // Update used masks
-      usedMasks = staticPositions.map(sp => sp.mask)
+      for (let i = 0; i < defunctCount; i++) {
+        const newLocation = p.random(emptyCells).location
+        const unusedMasks = masks.filter(mask => !usedMasks.includes(mask))
+        const newMask = p.random(unusedMasks)
+        const lifetime = Math.round(p.random(3, 20))
+        const newCell = new ImageCell(newLocation, newMask, lifetime)
+        imageCells.push(newCell)
+        usedMasks = imageCells.map(sp => sp.mask)
+      }
     }
 
-    // Draw using staticPositions
-    staticPositions.forEach(({ position, mask }) => {
-      const cellX = position.col * cellWidth
-      const cellY = position.row * cellHeight
+    imageCells.forEach(({ location, mask }) => {
+      const cellX = location.col * cellWidth
+      const cellY = location.row * cellHeight
 
       const maskX = cellX + inset + (insetWidth - newWidth) / 2
       const maskY = cellY + inset + (insetHeight - newHeight) / 2
@@ -209,7 +227,7 @@ const sketch = function (p) {
     } else if (p.key === 'S') {
       p.save(generateFilename('mona-masks'))
     } else if (p.key === 'r') {
-      initializePositions()
+      initializeCells()
     } else if (p.key === ' ') {
       pause = !pause
     }

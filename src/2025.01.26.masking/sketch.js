@@ -1,4 +1,5 @@
 /* global p5 */
+// https://editor.p5js.org/MichaelPaulukonis/sketches/PM8KRsrr5
 
 const timestamp = () => {
   const d = new Date()
@@ -18,7 +19,6 @@ function generateFilename (prefix) {
 
 const sketch = function (p) {
   let colorImg
-  let bwImg
   let masks = []
 
   p.preload = function () {

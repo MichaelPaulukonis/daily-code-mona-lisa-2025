@@ -1,4 +1,4 @@
-/* global p5 */
+/* global p5 RISOCOLORS */
 
 const timestamp = () => {
   const d = new Date()
@@ -95,9 +95,8 @@ const sketch = function (p) {
     displayLayer = p.createGraphics(outputSize, outputSize)
     displayLayer.pixelDensity(density)
     displayLayer.imageMode(p.CENTER)
-    colorPairs = getColorPairs() // Initialize color pairs outside the scope of buildCombinedLayer
+    colorPairs = getColorPairs()
 
-    // Initialize slider for cell count
     cellSlider = p.createSlider(1, 25, cellCount)
     cellSlider.position(10, displaySize - 60)
     cellSlider.style('width', '200px')
@@ -106,7 +105,6 @@ const sketch = function (p) {
       buildCombinedLayer(img)
     })
 
-    // Initialize slider for color pair count
     colorPairSlider = p.createSlider(1, 20, colorPairCount)
     colorPairSlider.position(10, displaySize - 30)
     colorPairSlider.style('width', '200px')
@@ -175,15 +173,15 @@ const sketch = function (p) {
 
   const handleKeys = () => {
     if (p.key === 'c' || p.key === 'C') {
-      colorPairs = getColorPairs() // Generate new color pairs when 'c' is pressed
+      colorPairs = getColorPairs()
       buildCombinedLayer(img)
       modal.dirty = true
     } else if (p.key === 'b' || p.key === 'B') {
       if (p.key === 'b' && blurAmount > 0) {
-        blurAmount-- // Decrease blur amount
+        blurAmount--
         modal.dirty = true
       } else if (p.key === 'B' && blurAmount < 10) {
-        blurAmount++ // Increase blur amount
+        blurAmount++
         modal.dirty = true
       }
       buildCombinedLayer(img)
@@ -210,7 +208,6 @@ const sketch = function (p) {
       modal.showUI = !modal.showUI
       modal.dirty = true
     } else if (p.key === 'f' || p.key === 'F') {
-      // toggle fit method
       scaleMethod =
         scaleMethod === scaleMethods.fitToWidth
           ? scaleMethods.fitToHeight
@@ -252,7 +249,13 @@ const sketch = function (p) {
   let cachedBlur = null
   const getContrastingImage = (img, threshold, color1, color2) => {
     let newImg
-    if (!(cachedImage && cachedThreshold === threshold && cachedBlur === blurAmount)) {
+    if (
+      !(
+        cachedImage &&
+        cachedThreshold === threshold &&
+        cachedBlur === blurAmount
+      )
+    ) {
       newImg = p.createImage(img.width, img.height)
       newImg.copy(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height)
       newImg.filter(p.BLUR, blurAmount)
@@ -303,7 +306,7 @@ const sketch = function (p) {
     const cellHeight = displayLayer.height / cellCount
     displayLayer.imageMode(p.CORNER)
     displayLayer.noStroke()
-    
+
     let imgIndex = 0
 
     const displayWidth = cellSize / zoomFactor

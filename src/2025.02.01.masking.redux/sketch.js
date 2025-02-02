@@ -64,8 +64,9 @@ const sketch = function (p) {
   p.setup = function () {
     targetLayer = p.createGraphics(colorImg.width, colorImg.height)
     p.createCanvas(600, 600).drop(handleFile)
+    p.frameRate(15)
 
-    gridSize = 5
+    gridSize = 4
     inset = 20
     cellWidth = targetLayer.width / gridSize
     cellHeight = targetLayer.height / gridSize
@@ -93,20 +94,27 @@ const sketch = function (p) {
       updateTargetLayer()
     }
     p.image(targetLayer, 0, 0, p.width, p.height)
-    p.frameRate(5)
   }
 
   function updateTargetLayer () {
     targetLayer.background(255)
 
-    // Randomly shuffle the positions
-    const shuffledPositions = p.shuffle(positions)
+    if (staticPositions.length === 0) {
+      initializePositions()
+    } else {
+      // Find a new random unpopulated position
+      const unpopulatedPositions = positions.filter(
+        pos => !staticPositions.includes(pos)
+      )
+      const newPosition = p.random(unpopulatedPositions)
 
-    // Only use as many positions as we have masks
-    const selectedPositions = shuffledPositions.slice(0, masks.length)
+      // Move the first cell to the new position and then to the end of the list
+      staticPositions.push(newPosition)
+      staticPositions.shift()
+    }
 
-    // Draw only in selected positions
-    selectedPositions.forEach((pos, index) => {
+    // Draw using staticPositions
+    staticPositions.forEach((pos, index) => {
       const cellX = pos.col * cellWidth
       const cellY = pos.row * cellHeight
 
@@ -135,7 +143,6 @@ const sketch = function (p) {
         insetWidth,
         insetHeight
       )
-      targetLayer.drawingContext.globalCompositeOperation = 'source-over'
 
       targetLayer.drawingContext.restore()
       targetLayer.pop()
